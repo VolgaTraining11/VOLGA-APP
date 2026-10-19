@@ -259,13 +259,13 @@ const CONFIG = {
     tiers: [[0, 4], [10000, 1], [30000, 0]],  // ступени по сумме: [от ₽, надбавка %]
   },
   // Свои курсы по странам (бот присылает из /admin). 0 = считать от рынка автоматически.
-  // rub = сколько ₽ клиент платит за 1 единицу (за 1000 ₫ для Вьетнама), usdt = сколько местной валюты за 1 USDT
+  // rub = сколько ₽ клиент платит за 1 единицу (для Вьетнама наоборот: сколько ₫ за 1 ₽), usdt = сколько местной валюты за 1 USDT
   fixed: { THB: { rub: 0, usdt: 0 }, VND: { rub: 0, usdt: 0 }, GEL: { rub: 0, usdt: 0 }, TRY: { rub: 0, usdt: 0 }, AED: { rub: 0, usdt: 0 } },
   rubCities: ["Москва", "Санкт-Петербург", "Самара"],
   nets: ["TRC20", "TON", "BEP20", "ERC20"],
   countries: {
     TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true,  bank: true },
-    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true,  bank: true },
+    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true,  bank: true, perRub: true },
     GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    cities: ["Тбилиси", "Батуми"], atm: false, bank: true },
     TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    cities: ["Аланья", "Стамбул"], atm: false, bank: true },
     AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", cities: ["Дубай"], atm: false, bank: false },
@@ -362,7 +362,7 @@ function cards(el, list, current, onPick) {
 // свой курс из /admin, если задан; иначе рынок минус наценка. ex = надбавка ступени за маленькую сумму
 function rubPerLocal(C, ex) {
   const f = CONFIG.fixed[C.cur] && CONFIG.fixed[C.cur].rub;
-  if (f > 0) return f * (1 + ex);
+  if (f > 0) return (C.perRub ? localUnit(C) / f : f) * (1 + ex);   // Вьетнам: f = ₫ за 1 ₽
   const k = m(S.give === "rub_cash" ? "rub_cash" : "rub_card") + ex;
   return localUnit(C) * rubPerUsdt() / USDT[C.cur.toLowerCase()] / (1 - k);
 }
@@ -397,7 +397,8 @@ function render() {
 
   // 二 что получаете
   const getList = [{ key: "cash", ic: "💵", title: `Наличные: ${C.word}`, sub: "Таиланд · Вьетнам · Грузия · Турция · ОАЭ",
-                     r: giveRub() ? `${fmtFiat(u)} ${C.sign} = <em>от ${fmtRate(rubPerLocal(C, ex0))} ₽</em>`
+                     r: giveRub() ? (C.perRub ? `1 ₽ = <em>до ${fmtRate(u / rubPerLocal(C, ex0))} ${C.sign}</em>`
+                                             : `${fmtFiat(u)} ${C.sign} = <em>от ${fmtRate(rubPerLocal(C, ex0))} ₽</em>`)
                                   : `1 USDT = <em>до ${fmtRate(localPerUsdt(C, ex0))} ${C.sign}</em>` }];
   if (giveRub()) getList.push({ key: "usdt", ic: "₮", title: "USDT", sub: "на ваш кошелёк", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_buy)} ₽</em>` });
   else getList.push({ key: "rub", ic: "₽", title: "Рубли", sub: "наличными в России или на карту", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_sell)} ₽</em>` });
@@ -450,7 +451,7 @@ function calc() {
   let out, cur, line, profit;
   if (S.get === "cash") {
     cur = C.sign;
-    if (giveRub()) { const rate = rubPerLocal(C, ex); out = v / rate * localUnit(C); line = `${fmtFiat(localUnit(C))} ${C.sign} ≈ ${fmtRate(rate)} ₽`;
+    if (giveRub()) { const rate = rubPerLocal(C, ex); out = v / rate * localUnit(C); line = C.perRub ? `1 ₽ ≈ ${fmtRate(localUnit(C) / rate)} ${C.sign}` : `${fmtFiat(localUnit(C))} ${C.sign} ≈ ${fmtRate(rate)} ₽`;
                      const fair = v / r * USDT[C.cur.toLowerCase()]; profit = { amt: fair - out, cur: C.sign, usdt: (fair - out) / USDT[C.cur.toLowerCase()] }; }
     else { const rate = localPerUsdt(C, ex); out = v * rate; line = `1 USDT ≈ ${fmtRate(rate)} ${C.sign}`;
            const fair = v * USDT[C.cur.toLowerCase()]; profit = { amt: fair - out, cur: C.sign, usdt: (fair - out) / USDT[C.cur.toLowerCase()] }; }
