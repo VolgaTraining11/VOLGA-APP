@@ -161,6 +161,14 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
       <div class="label">Где курьер заберёт рубли</div>
       <div class="chips" id="giveRubCity"></div>
     </div>
+    <div class="sub-box" id="giveCardBox" hidden>
+      <div class="label">Как переведёте</div>
+      <div class="chips" id="rubVia"></div>
+      <div class="group" id="bybitBox" hidden>
+        <label class="label" for="bybitNick">Ваш ник или UID на Bybit</label>
+        <input class="text" id="bybitNick" placeholder="например 123456789" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
     <div class="sub-box" id="giveUsdtBox" hidden>
       <div class="label">Сеть USDT</div>
       <div class="chips small" id="giveNet"></div>
@@ -331,7 +339,9 @@ const localUnit = C => C.cur === "VND" ? 1000 : 1;
 // ---------- состояние ----------
 const S = { give: "rub_cash", giveRubCity: CONFIG.rubCities[0], giveNet: "TRC20",
             get: "cash", country: "TH", city: CONFIG.countries.TH.cities[0], method: "Доставка курьером",
-            getNet: "TRC20", getRubHow: "cash", getRubCity: CONFIG.rubCities[0] };
+            getNet: "TRC20", getRubHow: "cash", getRubCity: CONFIG.rubCities[0], rubVia: "bybit" };
+// Верификация нужна, когда мы получаем рубли — кроме перевода через Bybit P2P (там имя проверяет Bybit)
+const needsKyc = () => S.give === "rub_cash" || (S.give === "rub_card" && S.rubVia === "card");
 const RUB_IN = { "Москва": "Москве", "Санкт-Петербург": "Петербурге", "Самара": "Самаре" };
 const giveRub = () => S.give !== "usdt";
 
@@ -390,9 +400,14 @@ function render() {
   chips($("giveRubCity"), CONFIG.rubCities, S.giveRubCity, v => S.giveRubCity = v);
   $("giveUsdtBox").hidden = S.give !== "usdt";
   chips($("giveNet"), CONFIG.nets, S.giveNet, v => S.giveNet = v);
+  $("giveCardBox").hidden = S.give !== "rub_card";
+  chips($("rubVia"), [{ value: "bybit", label: "Bybit P2P · без верификации" }, { value: "card", label: "На карту · с верификацией" }],
+        S.rubVia, v => S.rubVia = v);
+  $("bybitBox").hidden = !(S.give === "rub_card" && S.rubVia === "bybit");
   $("giveHint").innerHTML = S.give === "rub_cash"
-      ? `<span class="ic">◉</span><span>Курьер приедет к вам в <b>${RUB_IN[S.giveRubCity] || S.giveRubCity}</b> и заберёт наличные. Время и адрес согласует оператор.</span>`
-    : S.give === "rub_card" ? `<span class="ic">◉</span><span>Реквизиты для перевода пришлёт оператор после заявки.</span>`
+      ? `<span class="ic">◉</span><span>Курьер приедет к вам в <b>${RUB_IN[S.giveRubCity] || S.giveRubCity}</b> и заберёт наличные. Время и адрес согласует оператор.<br>🛂 Для рублей нужна разовая верификация: после заявки бот попросит видеокружок с паспортом.</span>`
+    : S.give === "rub_card" && S.rubVia === "bybit" ? `<span class="ic">◉</span><span>Сделку создадим через <b>Bybit P2P</b>. Имя на вашем аккаунте Bybit должно совпадать с именем на карте, с которой отправляете. Верификация у нас не нужна.</span>`
+    : S.give === "rub_card" ? `<span class="ic">◉</span><span>Реквизиты для перевода пришлёт оператор после заявки.<br>🛂 Нужна разовая верификация: после заявки бот попросит видеокружок с паспортом и личным кабинетом банка.</span>`
     : `<span class="ic">検</span><span>Адрес для отправки USDT пришлёт оператор. Входящие монеты проходят <b>AML</b>-проверку.</span>`;
 
   // 二 что получаете
@@ -500,6 +515,7 @@ $("mgr").addEventListener("click", e => openTg(e, $("mgr").href));
 function orderText() {
   const C = CONFIG.countries[S.country];
   const give = S.give === "rub_cash" ? `${fmtFiat(LAST.v)} ₽ наличными (курьер, ${S.giveRubCity})`
+             : S.give === "rub_card" && S.rubVia === "bybit" ? `${fmtFiat(LAST.v)} ₽ через Bybit P2P (Bybit: ${$("bybitNick").value.trim()})`
              : S.give === "rub_card" ? `${fmtFiat(LAST.v)} ₽ переводом на карту`
              : `${fmtUsdt(LAST.v)} USDT (${S.giveNet})`;
   const outTxt = LAST.cur === "USDT" ? fmtUsdt(LAST.out) : fmtFiat(LAST.out);
@@ -523,12 +539,13 @@ $("send").onclick = async () => {
   calc();
   let err = !LAST.v ? "Введите сумму обмена." : LAST.bad ? LAST.hint : "";
   if (!err && S.get === "usdt" && !$("usdtAddr").value.trim()) err = "Укажите адрес, куда прислать USDT.";
+  if (!err && S.give === "rub_card" && S.rubVia === "bybit" && !$("bybitNick").value.trim()) err = "Укажите ваш ник или UID на Bybit.";
   $("err").textContent = err; $("err").hidden = !err;
   if (err) return;
 
   const t = orderText(), p = LAST.profit;
   const profit = `≈ ${fmtFiat(p.amt)} ${p.cur} (≈ ${fmtUsdt(Math.round(p.usdt * 100) / 100)} USDT)`;
-  const payload = { text: t, profit, market: LIVE ? "рынок" : "примерный" };
+  const payload = { text: t, profit, market: LIVE ? "рынок" : "примерный", kyc: needsKyc() };
 
   // 1) Открыто из бота: заявка уходит на сервер бота вместе с данными Telegram (ник и ID)
   if (tg && tg.initData && API) {
@@ -538,7 +555,9 @@ $("send").onclick = async () => {
                                                body: JSON.stringify({ ...payload, initData: tg.initData }) });
       const j = await r.json();
       if (j.ok) {
-        showDone(`Заявка №${j.id} принята`, "Оператор напишет вам в Telegram в ближайшее время. Можно написать ему и самим.",
+        showDone(`Заявка №${j.id} принята`, needsKyc()
+                   ? "Вернитесь в чат с ботом: он попросит пройти верификацию (видеокружок с паспортом). Потом оператор напишет вам."
+                   : "Оператор напишет вам в Telegram в ближайшее время. Можно написать ему и самим.",
                  t, mgrLink(`Здравствуйте! Заявка №${j.id}\n${t}`));
         try { tg.HapticFeedback.notificationOccurred("success"); } catch (e) {}
         return;
