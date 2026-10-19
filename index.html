@@ -258,14 +258,17 @@ const CONFIG = {
     min_online: 5000, // минимум для переводов и банкомата (в рублях)
     tiers: [[0, 4], [10000, 1], [30000, 0]],  // ступени по сумме: [от ₽, надбавка %]
   },
+  // Свои курсы по странам (бот присылает из /admin). 0 = считать от рынка автоматически.
+  // rub = сколько ₽ клиент платит за 1 единицу (за 1000 ₫ для Вьетнама), usdt = сколько местной валюты за 1 USDT
+  fixed: { THB: { rub: 0, usdt: 0 }, VND: { rub: 0, usdt: 0 }, GEL: { rub: 0, usdt: 0 }, TRY: { rub: 0, usdt: 0 }, AED: { rub: 0, usdt: 0 } },
   rubCities: ["Москва", "Санкт-Петербург", "Самара"],
   nets: ["TRC20", "TON", "BEP20", "ERC20"],
   countries: {
-    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true },
-    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true },
-    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    cities: ["Тбилиси", "Батуми"], atm: false },
-    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    cities: ["Аланья", "Стамбул"], atm: false },
-    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", cities: ["Дубай"], atm: false },
+    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true,  bank: true },
+    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true,  bank: true },
+    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    cities: ["Тбилиси", "Батуми"], atm: false, bank: true },
+    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    cities: ["Аланья", "Стамбул"], atm: false, bank: true },
+    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", cities: ["Дубай"], atm: false, bank: false },
   },
   // Запасной курс USDT, если рынок не загрузился. Точный курс даст оператор.
   fallback: { usd: 1, rub: 82, thb: 33, vnd: 26200, gel: 2.7, try: 42, aed: 3.67 },
@@ -275,6 +278,11 @@ const CONFIG = {
 const Q = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(); } })();
 if (Q.get("m")) CONFIG.manager = Q.get("m").replace("@", "");
 if (Q.get("rv")) CONFIG.reviews = Q.get("rv");
+// fx=THB:2.59:32.5,VND:3.3:0 — свои курсы по странам из бота
+(Q.get("fx") || "").split(",").forEach(p => {
+  const [c, r, u] = p.split(":");
+  if (CONFIG.fixed[c]) CONFIG.fixed[c] = { rub: parseFloat(r) || 0, usdt: parseFloat(u) || 0 };
+});
 if (Q.get("s")) {
   const keys = ["crypto", "rub_cash", "rub_card", "swap", "usdt_buy", "usdt_sell", "rub_market", "min_cash", "min_online"];
   Q.get("s").split(",").forEach((v, i) => { const n = parseFloat(v); if (keys[i] && !isNaN(n)) CONFIG.rates[keys[i]] = n; });
@@ -304,7 +312,9 @@ async function loadAll() {
     try {
       const r = await fetch(API + "/rates");
       if (r.ok) { const j = await r.json(); Object.assign(CONFIG.rates, j.rates || {});
-        if (j.manager) CONFIG.manager = j.manager; if (j.reviews !== undefined) CONFIG.reviews = j.reviews; setMgr(); }
+        if (j.manager) CONFIG.manager = j.manager; if (j.reviews !== undefined) CONFIG.reviews = j.reviews;
+        if (j.fixed) for (const c in j.fixed) if (CONFIG.fixed[c]) CONFIG.fixed[c] = { rub: +j.fixed[c].rub || 0, usdt: +j.fixed[c].usdt || 0 };
+        setMgr(); }
     } catch (e) {}
   }
   try {
@@ -349,8 +359,18 @@ function cards(el, list, current, onPick) {
 }
 
 // курс «1 местной валюты = X ₽» и «1 USDT = X местной» с учётом ступени
-function rubPerLocal(C, ex) { const k = m(S.give === "rub_cash" ? "rub_cash" : "rub_card") + ex; return localUnit(C) * rubPerUsdt() / USDT[C.cur.toLowerCase()] / (1 - k); }
-function localPerUsdt(C, ex) { return USDT[C.cur.toLowerCase()] * (1 - m("crypto") - ex); }
+// свой курс из /admin, если задан; иначе рынок минус наценка. ex = надбавка ступени за маленькую сумму
+function rubPerLocal(C, ex) {
+  const f = CONFIG.fixed[C.cur] && CONFIG.fixed[C.cur].rub;
+  if (f > 0) return f * (1 + ex);
+  const k = m(S.give === "rub_cash" ? "rub_cash" : "rub_card") + ex;
+  return localUnit(C) * rubPerUsdt() / USDT[C.cur.toLowerCase()] / (1 - k);
+}
+function localPerUsdt(C, ex) {
+  const f = CONFIG.fixed[C.cur] && CONFIG.fixed[C.cur].usdt;
+  if (f > 0) return f * (1 - ex);
+  return USDT[C.cur.toLowerCase()] * (1 - m("crypto") - ex);
+}
 
 function render() {
   const C = CONFIG.countries[S.country], ex0 = 0, u = localUnit(C);
@@ -377,19 +397,24 @@ function render() {
 
   // 二 что получаете
   const getList = [{ key: "cash", ic: "💵", title: `Наличные: ${C.word}`, sub: "Таиланд · Вьетнам · Грузия · Турция · ОАЭ",
-                     r: giveRub() ? `${fmtFiat(u)} ${C.sign} = <em>${fmtRate(rubPerLocal(C, ex0))} ₽</em>`
-                                  : `1 USDT = <em>${fmtRate(localPerUsdt(C, ex0))} ${C.sign}</em>` }];
+                     r: giveRub() ? `${fmtFiat(u)} ${C.sign} = <em>от ${fmtRate(rubPerLocal(C, ex0))} ₽</em>`
+                                  : `1 USDT = <em>до ${fmtRate(localPerUsdt(C, ex0))} ${C.sign}</em>` }];
   if (giveRub()) getList.push({ key: "usdt", ic: "₮", title: "USDT", sub: "на ваш кошелёк", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_buy)} ₽</em>` });
   else getList.push({ key: "rub", ic: "₽", title: "Рубли", sub: "наличными в России или на карту", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_sell)} ₽</em>` });
   cards($("get"), getList, S.get, v => S.get = v);
 
   $("cashBox").hidden = S.get !== "cash";
   chips($("country"), Object.entries(CONFIG.countries).map(([code, c]) => ({ value: code, label: `${c.flag} ${c.name}` })), S.country,
-        v => { S.country = v; S.city = CONFIG.countries[v].cities[0]; if (!CONFIG.countries[v].atm) S.method = "Доставка курьером"; });
+        v => { S.country = v; S.city = CONFIG.countries[v].cities[0]; const n = CONFIG.countries[v];
+              if ((S.method === "Выдача через банкомат" && !n.atm) || (S.method === "На банковский счёт" && !n.bank)) S.method = "Доставка курьером"; });
   chips($("city"), C.cities, S.city, v => S.city = v);
   chips($("method"), [{ value: "Доставка курьером", label: "🛵 Доставка курьером" },
+                      { value: "На банковский счёт", label: "🏦 На банковский счёт", disabled: !C.bank },
                       { value: "Выдача через банкомат", label: "🏧 Через банкомат", disabled: !C.atm }], S.method, v => S.method = v);
-  $("atmNote").hidden = C.atm; $("atmNote").textContent = "Выдача через банкомат пока только в Таиланде и Вьетнаме.";
+  const miss = [!C.bank && "перевод на счёт", !C.atm && "банкомат"].filter(Boolean);
+  $("atmNote").hidden = !miss.length && S.method !== "На банковский счёт";
+  $("atmNote").textContent = S.method === "На банковский счёт" ? "Реквизиты счёта оператор спросит после заявки."
+    : `${C.name}: ${miss.join(" и ")} пока ${miss.length > 1 ? "недоступны" : "недоступен"}. Банкомат — Таиланд и Вьетнам, перевод на счёт — Таиланд, Вьетнам, Грузия, Турция.`;
 
   $("getUsdtBox").hidden = S.get !== "usdt";
   chips($("getNet"), CONFIG.nets, S.getNet, v => S.getNet = v);
@@ -458,7 +483,7 @@ $("amount").addEventListener("input", e => {
 });
 
 $("geo").innerHTML = `<dt>Приём ₽</dt><dd>${CONFIG.rubCities.join(" · ")} · переводом из любого города</dd>` +
-  Object.values(CONFIG.countries).map(c => `<dt>${c.flag} ${c.name}</dt><dd>${c.cities.join(" · ")}${c.atm ? " · банкоматы" : ""}</dd>`).join("");
+  Object.values(CONFIG.countries).map(c => `<dt>${c.flag} ${c.name}</dt><dd>${c.cities.join(" · ")}${c.bank ? " · на счёт" : ""}${c.atm ? " · банкоматы" : ""}</dd>`).join("");
 function mgrLink(text) { return "https://t.me/" + CONFIG.manager + (text ? "?text=" + encodeURIComponent(text) : ""); }
 function setMgr() {
   $("mgr2").href = mgrLink(); $("mgr2").textContent = "@" + CONFIG.manager;
