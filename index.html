@@ -545,7 +545,9 @@ $("send").onclick = async () => {
 
   const t = orderText(), p = LAST.profit;
   const profit = `≈ ${fmtFiat(p.amt)} ${p.cur} (≈ ${fmtUsdt(Math.round(p.usdt * 100) / 100)} USDT)`;
-  const payload = { text: t, profit, market: LIVE ? "рынок" : "примерный", kyc: needsKyc() };
+  const rubEq = giveRub() ? LAST.v : LAST.v * rubPerUsdt();
+  const payload = { text: t, profit, market: LIVE ? "рынок" : "примерный", kyc: needsKyc(),
+                    rub: Math.round(rubEq), profit_usdt: Math.round(p.usdt * 100) / 100 };   // цифры для статистики
 
   // 1) Открыто из бота: заявка уходит на сервер бота вместе с данными Telegram (ник и ID)
   if (tg && tg.initData && API) {
