@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d1424">
 <title>Volga Exchange</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Shippori+Mincho+B1:wght@800&display=swap">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 /* Layout: one narrow scroll column like a phone app; engraved seigaiha waves on canvas behind, red sun glowing behind the logo. Single deliberate dark look (night ink + vermilion + washi paper). */
@@ -18,13 +18,14 @@
   --muted:#9aa5bf;
   --shu:#d63a2f;        /* vermilion, hanko red */
   --gold:#c4a468;
-  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
-  --f-body:var(--f-display);   /* один шрифт на всё приложение */
+  --f-display:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;   /* весь текст и цифры */
+  --f-body:var(--f-display);
+  --f-kanji:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;     /* только иероглифы */
   color-scheme:dark;
 }
 html,body{background:var(--ink);color:var(--washi);margin:0}
 html{-webkit-text-size-adjust:100%}
-body{font-family:var(--f-body);font-weight:500;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100%}
+body{font-family:var(--f-body);font-weight:400;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100%}
 #waves{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 .app{position:relative;z-index:1;max-width:460px;margin:0 auto;padding-block:20px 40px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -122,20 +123,22 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
 .duo div{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .duo b{display:block;font-family:var(--f-display);font-size:1.25rem;font-variant-numeric:tabular-nums}
 .duo span{font-size:.75rem;color:var(--muted)}
-/* v4: шаги «где → что → детали → итог» */
+/* v5: отдаёте → получаете → сумма */
+.jp,.step,.hanko,footer,.seal,.hint .ic{font-family:var(--f-kanji)}
 .opts{display:flex;flex-direction:column;gap:8px}
 .opt{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--washi);
-  background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
-.opt .ic{font-size:1.35rem;color:var(--gold);text-align:center;font-weight:800}
-.opt b{display:block;font-weight:700;font-size:1rem;line-height:1.25}
-.opt small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
-.opt .r{font-weight:800;font-size:.85rem;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.opt .r em{font-style:normal;color:var(--shu)}
+  background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;padding:13px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+.opt .ic{font-size:1.3rem;color:var(--gold);text-align:center;font-weight:700}
+.opt b{display:block;font-weight:600;font-size:1rem;line-height:1.25}
+.opt small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px;font-weight:400}
+.opt .r{font-weight:600;font-size:.88rem;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;color:var(--muted)}
+.opt .r em{font-style:normal;color:var(--washi)}
 .opt[aria-pressed="true"]{border-color:var(--gold);background:rgba(196,164,104,.10)}
+.opt[aria-pressed="true"] .r em{color:var(--gold)}
+.sub-box{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;background:rgba(0,0,0,.18)}
 .who{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--muted);margin:0}
-.who b{color:var(--washi)}
+.who b{color:var(--washi);font-weight:600}
 .who::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#5cc28a}
-.sent{font-size:2.2rem;font-weight:800;margin:0;color:var(--washi)}
 #reviews{display:block}
 </style>
 </head>
@@ -150,81 +153,61 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
   </header>
 
   <div id="form" class="group" style="gap:18px">
-  <!-- 一 где -->
+  <!-- 一 что отдаёте -->
   <section class="panel">
-    <h2 class="ptitle"><span class="step">一</span>Где вы находитесь</h2>
-    <div class="chips" id="country"></div>
-    <div class="group"><div class="label">Город</div><div class="chips" id="city"></div></div>
-  </section>
-
-  <!-- 二 что -->
-  <section class="panel">
-    <h2 class="ptitle"><span class="step">二</span>Что меняете</h2>
-    <div class="opts" id="modes"></div>
-    <p class="note" id="ratesNote"></p>
-  </section>
-
-  <!-- 三 детали -->
-  <section class="panel">
-    <h2 class="ptitle"><span class="step">三</span><span id="detTitle">Детали</span></h2>
-
-    <div class="group" id="dirBox" hidden>
-      <div class="label">Что хотите</div>
-      <div class="chips" id="dir"></div>
+    <h2 class="ptitle"><span class="step">一</span>Что отдаёте</h2>
+    <div class="opts" id="give"></div>
+    <div class="sub-box" id="giveRubBox" hidden>
+      <div class="label">Где курьер заберёт рубли</div>
+      <div class="chips" id="giveRubCity"></div>
     </div>
-
-    <div class="group" id="giveCoinBox" hidden>
-      <div class="label" id="giveCoinLabel">Монета</div>
-      <div class="chips coins" id="giveCoin"></div>
+    <div class="sub-box" id="giveUsdtBox" hidden>
+      <div class="label">Сеть USDT</div>
       <div class="chips small" id="giveNet"></div>
     </div>
+    <p class="hint" id="giveHint"></p>
+  </section>
 
-    <div class="group" id="rubBox" hidden>
-      <div class="label" id="rubLabel">Как отдаёте рубли</div>
-      <div class="chips" id="rubHow"></div>
-      <div class="chips" id="rubCity"></div>
-      <p class="hint" id="rubHint"></p>
+  <!-- 二 что получаете -->
+  <section class="panel">
+    <h2 class="ptitle"><span class="step">二</span>Что получаете</h2>
+    <div class="opts" id="get"></div>
+
+    <div class="sub-box" id="cashBox">
+      <div class="label">Страна</div>
+      <div class="chips" id="country"></div>
+      <div class="label">Город</div>
+      <div class="chips" id="city"></div>
+      <div class="label">Способ получения</div>
+      <div class="chips" id="method"></div>
+      <p class="note" id="atmNote" hidden></p>
     </div>
 
-    <div class="group" id="usdtNetBox" hidden>
+    <div class="sub-box" id="getUsdtBox" hidden>
       <div class="label">Сеть USDT</div>
-      <div class="chips small" id="usdtNet"></div>
-    </div>
-    <div class="group" id="usdtAddrBox" hidden>
+      <div class="chips small" id="getNet"></div>
       <label class="label" for="usdtAddr">Ваш адрес USDT</label>
       <input class="text mono" id="usdtAddr" placeholder="Куда прислать USDT" autocomplete="off" spellcheck="false">
     </div>
 
-    <div class="group" id="swapBox" hidden>
-      <div class="label">Получаете монету</div>
-      <div class="chips coins" id="getCoin"></div>
-      <div class="chips small" id="getNet"></div>
-      <label class="label" for="fromAddr">Адрес, с которого отправите</label>
-      <input class="text mono" id="fromAddr" placeholder="Кошелёк отправителя" autocomplete="off" spellcheck="false">
-      <label class="label" for="toAddr">Адрес для получения</label>
-      <input class="text mono" id="toAddr" placeholder="Куда отправить монеты" autocomplete="off" spellcheck="false">
+    <div class="sub-box" id="getRubBox" hidden>
+      <div class="label">Как получить рубли</div>
+      <div class="chips" id="getRubHow"></div>
+      <div class="chips" id="getRubCity"></div>
     </div>
-
-    <p class="hint" id="amlHint" hidden><span class="ic">検</span><span id="amlText"></span></p>
-
-    <div class="group" id="methodBox">
-      <div class="label">Как получить наличные</div>
-      <div class="chips" id="method"></div>
-      <p class="note" id="atmNote"></p>
-    </div>
-
-    <div class="group">
-      <div class="label" id="amountLabel">Сумма</div>
-      <label class="field" for="amount">
-        <input id="amount" inputmode="decimal" autocomplete="off" value="100000" placeholder="0" aria-label="Сумма">
-        <span class="code" id="code">USDT</span>
-      </label>
-    </div>
+    <p class="note" id="ratesNote"></p>
   </section>
 
-  <!-- 四 итог -->
+  <!-- 三 сумма -->
   <section class="panel">
-    <h2 class="ptitle"><span class="step">四</span>Итог</h2>
+    <h2 class="ptitle"><span class="step">三</span>Сумма</h2>
+    <div class="group">
+      <div class="label" id="amountLabel">Сколько отдаёте</div>
+      <label class="field" for="amount">
+        <input id="amount" inputmode="decimal" autocomplete="off" value="100,000" placeholder="0" aria-label="Сумма">
+        <span class="code" id="code">RUB</span>
+      </label>
+    </div>
     <div class="flow" id="rateline">—</div>
     <p class="tierhint" id="tierHint" hidden></p>
     <div>
@@ -264,55 +247,38 @@ const CONFIG = {
   reviews: "",                // ссылка на отзывы (бот подставит свою из /admin)
   // Курсы по умолчанию. Бот присылает свежие из админ-панели.
   rates: {
-    crypto: 3,      // % наценки: крипта → наличные
+    crypto: 3,      // % наценки: USDT → наличные
     rub_cash: 3,    // % наценки: наличные рубли → наличные
     rub_card: 3,    // % наценки: рубли переводом → наличные
-    swap: 2,        // % наценки: крипта → крипта
+    swap: 2,        // (не используется)
     usdt_buy: 91,   // клиент покупает 1 USDT за столько ₽
     usdt_sell: 83,  // клиент продаёт 1 USDT за столько ₽
     rub_market: 0,  // твой рыночный курс ₽ за 1 USDT (0 = брать с биржи)
     min_cash: 30000,  // минимум, если едет курьер (в рублях)
-    min_online: 5000, // минимум для переводов, банкомата и крипты (в рублях)
-    // Ступени по сумме (в рублях): [от суммы, надбавка %]. Плюс — курс хуже.
-    tiers: [[0, 4], [10000, 1], [30000, 0]],
+    min_online: 5000, // минимум для переводов и банкомата (в рублях)
+    tiers: [[0, 4], [10000, 1], [30000, 0]],  // ступени по сумме: [от ₽, надбавка %]
   },
   rubCities: ["Москва", "Санкт-Петербург", "Самара"],
+  nets: ["TRC20", "TON", "BEP20", "ERC20"],
   countries: {
-    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",     cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true },
-    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",    cities: ["Нячанг", "Хошимин", "Дананг"], atm: true },
-    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",     cities: ["Тбилиси", "Батуми"], atm: false },
-    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",     cities: ["Аланья", "Стамбул"], atm: false },
-    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы",  cities: ["Дубай"], atm: false },
+    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true },
+    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true },
+    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    cities: ["Тбилиси", "Батуми"], atm: false },
+    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    cities: ["Аланья", "Стамбул"], atm: false },
+    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", cities: ["Дубай"], atm: false },
   },
-  coins: {
-    USDT: { id: "tether",           nets: ["TRC20", "TON", "BEP20", "ERC20"] },
-    BTC:  { id: "bitcoin",          nets: [] },
-    ETH:  { id: "ethereum",         nets: ["ERC20", "Arbitrum"] },
-    TON:  { id: "the-open-network", nets: [] },
-    TRX:  { id: "tron",             nets: [] },
-    SOL:  { id: "solana",           nets: [] },
-    LTC:  { id: "litecoin",         nets: [] },
-    USDC: { id: "usd-coin",         nets: ["ERC20", "BEP20", "SOL"] },
-    "Другая": { id: null,           nets: [] },
-  },
-  cashCoins: ["USDT", "BTC", "Другая"],   // монеты в «Крипта → наличные»
-  // Запасные цены, если рынок не загрузился. Точный курс даст оператор.
-  fallback: {
-    usdt: { usd: 1, rub: 82, thb: 33, vnd: 26200, gel: 2.7, try: 42, aed: 3.67 },
-    usd:  { tether: 1, bitcoin: 110000, ethereum: 3800, "the-open-network": 3, tron: 0.3, solana: 190, litecoin: 95, "usd-coin": 1 },
-  },
+  // Запасной курс USDT, если рынок не загрузился. Точный курс даст оператор.
+  fallback: { usd: 1, rub: 82, thb: 33, vnd: 26200, gel: 2.7, try: 42, aed: 3.67 },
 };
 /* ================================== */
 
 const Q = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(); } })();
 if (Q.get("m")) CONFIG.manager = Q.get("m").replace("@", "");
 if (Q.get("rv")) CONFIG.reviews = Q.get("rv");
-// s=crypto,rub_cash,rub_card,swap,usdt_buy,usdt_sell,rub_market,min_cash,min_online — курсы из бота
 if (Q.get("s")) {
   const keys = ["crypto", "rub_cash", "rub_card", "swap", "usdt_buy", "usdt_sell", "rub_market", "min_cash", "min_online"];
   Q.get("s").split(",").forEach((v, i) => { const n = parseFloat(v); if (keys[i] && !isNaN(n)) CONFIG.rates[keys[i]] = n; });
 }
-// t=0:4,10000:1,30000:0 — ступени по сумме из бота
 if (Q.get("t")) {
   const t = Q.get("t").split(",").map(p => p.split(":").map(Number)).filter(p => p.length === 2 && !p.some(isNaN));
   if (t.length) CONFIG.rates.tiers = t.sort((a, b) => a[0] - b[0]);
@@ -324,21 +290,15 @@ if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#0d1424"); tg.setBac
 const TG_USER = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
 
 const $ = id => document.getElementById(id);
-const FIATS = ["rub", "usd", ...Object.values(CONFIG.countries).map(c => c.cur.toLowerCase())];
-const nb = s => s.replace(/ /g, " ");
-const fmtFiat = n => nb(Math.round(n).toLocaleString("ru-RU"));
-const fmtCoin = n => nb(n >= 100 ? n.toLocaleString("ru-RU", { maximumFractionDigits: 2 }) : n.toLocaleString("ru-RU", { maximumSignificantDigits: 6 }));
-const fmtRate = n => n >= 1000 ? fmtFiat(n) : nb(n.toLocaleString("ru-RU", { maximumFractionDigits: 2 }));
-const parse = s => { const v = parseFloat(String(s).replace(/\s/g, "").replace(",", ".")); return v > 0 ? v : 0; };
+// Числа с запятыми: 100,000 и 32.01
+const fmtFiat = n => Math.round(n).toLocaleString("en-US");
+const fmtRate = n => n >= 1000 ? fmtFiat(n) : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+const fmtUsdt = n => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+const parse = s => { const v = parseFloat(String(s).replace(/[,\s]/g, "")); return v > 0 ? v : 0; };
 
-// ---------- цены ----------
-let PRICES, LIVE = false;
-function buildFallback() {
-  const p = {};
-  for (const [id, usd] of Object.entries(CONFIG.fallback.usd)) { p[id] = {}; for (const f of FIATS) p[id][f] = usd * CONFIG.fallback.usdt[f]; }
-  return p;
-}
-PRICES = buildFallback();
+// ---------- курс USDT ----------
+const FIATS = ["rub", "usd", ...Object.values(CONFIG.countries).map(c => c.cur.toLowerCase())];
+let USDT = { ...CONFIG.fallback }, LIVE = false;
 async function loadAll() {
   if (API) {
     try {
@@ -347,26 +307,23 @@ async function loadAll() {
         if (j.manager) CONFIG.manager = j.manager; if (j.reviews !== undefined) CONFIG.reviews = j.reviews; setMgr(); }
     } catch (e) {}
   }
-  const ids = Object.values(CONFIG.coins).map(c => c.id).filter(Boolean).join(",");
   try {
-    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${FIATS.join(",")}`);
-    if (!r.ok) throw 0;
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=${FIATS.join(",")}`);
     const j = await r.json();
-    if (!j.tether || !j.tether.rub) throw 0;
-    PRICES = Object.assign(buildFallback(), j); LIVE = true;
-  } catch (e) { LIVE = false; }
+    if (j.tether && j.tether.rub) { USDT = { ...CONFIG.fallback, ...j.tether }; LIVE = true; }
+  } catch (e) {}
   render();
 }
-const price = (coin, fiat) => { const id = CONFIG.coins[coin].id; return id && PRICES[id] ? PRICES[id][fiat] : null; };
-const rubPerUsdt = () => CONFIG.rates.rub_market > 0 ? CONFIG.rates.rub_market : price("USDT", "rub");
+const rubPerUsdt = () => CONFIG.rates.rub_market > 0 ? CONFIG.rates.rub_market : USDT.rub;
 const m = key => CONFIG.rates[key] / 100;
-const localUnit = C => C.cur === "VND" ? 1000 : 1;   // донг считаем за 1000
+const localUnit = C => C.cur === "VND" ? 1000 : 1;
 
 // ---------- состояние ----------
-const S = { country: "TH", city: CONFIG.countries.TH.cities[0], mode: "rub",
-            give: "USDT", giveNet: "TRC20", get: "BTC", getNet: "",
-            rubHow: "cash", rubCity: CONFIG.rubCities[0], dir: "buy", usdtNet: "TRC20",
-            method: "Доставка курьером" };
+const S = { give: "rub_cash", giveRubCity: CONFIG.rubCities[0], giveNet: "TRC20",
+            get: "cash", country: "TH", city: CONFIG.countries.TH.cities[0], method: "Доставка курьером",
+            getNet: "TRC20", getRubHow: "cash", getRubCity: CONFIG.rubCities[0] };
+const RUB_IN = { "Москва": "Москве", "Санкт-Петербург": "Петербурге", "Самара": "Самаре" };
+const giveRub = () => S.give !== "usdt";
 
 function chips(el, items, current, onPick) {
   el.innerHTML = "";
@@ -380,97 +337,73 @@ function chips(el, items, current, onPick) {
     el.appendChild(b);
   });
 }
-const netItems = c => CONFIG.coins[c].nets.map(n => ({ value: n, label: "сеть " + n }));
-const RUB_IN = { "Москва": "Москве", "Санкт-Петербург": "Петербурге", "Самара": "Самаре" };
-
-// карточки «что меняете» — каждая сразу с курсом
-function modeCards() {
-  const C = CONFIG.countries[S.country], f = C.cur.toLowerCase(), u = localUnit(C);
-  const rub = rubPerUsdt(), loc = price("USDT", f);
-  const list = [
-    { key: "rub",    ic: "₽", title: `Рубли → ${C.word}`, sub: "наличными или переводом",
-      r: `${fmtFiat(u)} ${C.sign} = <em>${fmtRate(u * rub / loc / (1 - m("rub_card")))} ₽</em>` },
-    { key: "crypto", ic: "₮", title: `Крипта → ${C.word}`, sub: "USDT, BTC и другие",
-      r: `1 USDT = <em>${fmtRate(loc * (1 - m("crypto")))} ${C.sign}</em>` },
-    { key: "usdt",   ic: "⇄", title: "Рубли ⇄ USDT", sub: "купить или продать USDT",
-      r: `<em>${fmtRate(CONFIG.rates.usdt_buy)}</em> / <em>${fmtRate(CONFIG.rates.usdt_sell)} ₽</em>` },
-    { key: "swap",   ic: "⟳", title: "Крипта → крипта", sub: "с AML-проверкой", r: "по рынку" },
-  ];
-  $("modes").innerHTML = "";
+function cards(el, list, current, onPick) {
+  el.innerHTML = "";
   list.forEach(o => {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "opt"; b.setAttribute("aria-pressed", o.key === S.mode);
-    b.innerHTML = `<span class="ic">${o.ic}</span><span><b>${o.title}</b><small>${o.sub}</small></span><span class="r">${o.r}</span>`;
-    b.onclick = () => {
-      S.mode = o.key;
-      $("amount").value = o.key === "rub" || (o.key === "usdt" && S.dir === "buy") ? "100000" : "1000";
-      render();
-    };
-    $("modes").appendChild(b);
+    b.type = "button"; b.className = "opt"; b.setAttribute("aria-pressed", o.key === current);
+    b.innerHTML = `<span class="ic">${o.ic}</span><span><b>${o.title}</b><small>${o.sub}</small></span><span class="r">${o.r || ""}</span>`;
+    b.onclick = () => { onPick(o.key); render(); };
+    el.appendChild(b);
   });
-  const base = tiers().find(([, x]) => x === 0);
-  $("ratesNote").textContent = (base ? `Курс для суммы от ${fmtFiat(Math.max(base[0], CONFIG.rates.min_online))} ₽, на меньшие суммы ниже. ` : "") + "Точный курс подтвердит оператор.";
 }
 
-function render() {
-  const C = CONFIG.countries[S.country], md = S.mode, sellUsdt = md === "usdt" && S.dir === "sell";
+// курс «1 местной валюты = X ₽» и «1 USDT = X местной» с учётом ступени
+function rubPerLocal(C, ex) { const k = m(S.give === "rub_cash" ? "rub_cash" : "rub_card") + ex; return localUnit(C) * rubPerUsdt() / USDT[C.cur.toLowerCase()] / (1 - k); }
+function localPerUsdt(C, ex) { return USDT[C.cur.toLowerCase()] * (1 - m("crypto") - ex); }
 
-  // страна / город
+function render() {
+  const C = CONFIG.countries[S.country], ex0 = 0, u = localUnit(C);
+
+  // 一 что отдаёте
+  cards($("give"), [
+    { key: "rub_cash", ic: "₽", title: "Рубли наличными", sub: "курьер заберёт в Москве, Петербурге, Самаре" },
+    { key: "rub_card", ic: "₽", title: "Рубли переводом", sub: "СБП или перевод на карту" },
+    { key: "usdt",     ic: "₮", title: "USDT", sub: "TRC20 · TON · BEP20 · ERC20" },
+  ], S.give, v => {
+    const wasRub = giveRub(); S.give = v;
+    if (giveRub() !== wasRub) { $("amount").value = giveRub() ? "100,000" : "1,000"; }
+    if (giveRub() && S.get === "rub") S.get = "cash";
+    if (!giveRub() && S.get === "usdt") S.get = "cash";
+  });
+  $("giveRubBox").hidden = S.give !== "rub_cash";
+  chips($("giveRubCity"), CONFIG.rubCities, S.giveRubCity, v => S.giveRubCity = v);
+  $("giveUsdtBox").hidden = S.give !== "usdt";
+  chips($("giveNet"), CONFIG.nets, S.giveNet, v => S.giveNet = v);
+  $("giveHint").innerHTML = S.give === "rub_cash"
+      ? `<span class="ic">◉</span><span>Курьер приедет к вам в <b>${RUB_IN[S.giveRubCity] || S.giveRubCity}</b> и заберёт наличные. Время и адрес согласует оператор.</span>`
+    : S.give === "rub_card" ? `<span class="ic">◉</span><span>Реквизиты для перевода пришлёт оператор после заявки.</span>`
+    : `<span class="ic">検</span><span>Адрес для отправки USDT пришлёт оператор. Входящие монеты проходят <b>AML</b>-проверку.</span>`;
+
+  // 二 что получаете
+  const getList = [{ key: "cash", ic: "💵", title: `Наличные: ${C.word}`, sub: "Таиланд · Вьетнам · Грузия · Турция · ОАЭ",
+                     r: giveRub() ? `${fmtFiat(u)} ${C.sign} = <em>${fmtRate(rubPerLocal(C, ex0))} ₽</em>`
+                                  : `1 USDT = <em>${fmtRate(localPerUsdt(C, ex0))} ${C.sign}</em>` }];
+  if (giveRub()) getList.push({ key: "usdt", ic: "₮", title: "USDT", sub: "на ваш кошелёк", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_buy)} ₽</em>` });
+  else getList.push({ key: "rub", ic: "₽", title: "Рубли", sub: "наличными в России или на карту", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_sell)} ₽</em>` });
+  cards($("get"), getList, S.get, v => S.get = v);
+
+  $("cashBox").hidden = S.get !== "cash";
   chips($("country"), Object.entries(CONFIG.countries).map(([code, c]) => ({ value: code, label: `${c.flag} ${c.name}` })), S.country,
         v => { S.country = v; S.city = CONFIG.countries[v].cities[0]; if (!CONFIG.countries[v].atm) S.method = "Доставка курьером"; });
   chips($("city"), C.cities, S.city, v => S.city = v);
-  modeCards();
-
-  // какие блоки видны
-  $("detTitle").textContent = { rub: "Рубли", crypto: "Крипта", usdt: "Рубли ⇄ USDT", swap: "Крипта → крипта" }[md];
-  $("dirBox").hidden = md !== "usdt";
-  $("giveCoinBox").hidden = !(md === "crypto" || md === "swap");
-  $("rubBox").hidden = !(md === "rub" || md === "usdt");
-  $("usdtNetBox").hidden = md !== "usdt";
-  $("usdtAddrBox").hidden = !(md === "usdt" && S.dir === "buy");
-  $("swapBox").hidden = md !== "swap";
-  $("methodBox").hidden = !(md === "rub" || md === "crypto");
-
-  // монеты
-  const list = md === "crypto" ? CONFIG.cashCoins : Object.keys(CONFIG.coins);
-  if (!list.includes(S.give)) { S.give = "USDT"; S.giveNet = "TRC20"; }
-  $("giveCoinLabel").textContent = md === "swap" ? "Отдаёте монету" : "Монета";
-  chips($("giveCoin"), list, S.give, v => { S.give = v; S.giveNet = CONFIG.coins[v].nets[0] || ""; });
-  chips($("giveNet"), netItems(S.give), S.giveNet, v => S.giveNet = v);
-  if (S.get === S.give) S.get = S.give === "USDT" ? "BTC" : "USDT";
-  chips($("getCoin"), Object.keys(CONFIG.coins).filter(c => c !== S.give), S.get, v => { S.get = v; S.getNet = CONFIG.coins[v].nets[0] || ""; });
-  if (!CONFIG.coins[S.get].nets.includes(S.getNet)) S.getNet = CONFIG.coins[S.get].nets[0] || "";
-  chips($("getNet"), netItems(S.get), S.getNet, v => S.getNet = v);
-
-  // рубли
-  chips($("dir"), [{ value: "buy", label: "Купить USDT за ₽" }, { value: "sell", label: "Продать USDT за ₽" }], S.dir, v => {
-    S.dir = v; $("amount").value = v === "buy" ? "100000" : "1000"; });
-  $("rubLabel").textContent = sellUsdt ? "Как получить рубли" : "Как отдаёте рубли";
-  chips($("rubHow"), [{ value: "cash", label: sellUsdt ? "💵 Наличными курьером" : "💵 Наличные курьеру" },
-                      { value: "card", label: "💳 Переводом на карту" }], S.rubHow, v => S.rubHow = v);
-  $("rubCity").hidden = S.rubHow !== "cash";
-  chips($("rubCity"), CONFIG.rubCities, S.rubCity, v => S.rubCity = v);
-  $("rubHint").innerHTML = S.rubHow === "cash"
-    ? `<span class="ic">◉</span><span>Курьер приедет к вам в <b>${RUB_IN[S.rubCity] || S.rubCity}</b>${sellUsdt ? " и привезёт рубли" : " и заберёт наличные рубли"}. Время и адрес согласует оператор.</span>`
-    : `<span class="ic">◉</span><span>${sellUsdt ? "Рубли придут на вашу карту." : "Реквизиты для перевода пришлёт оператор."} Перевод по СБП или на карту.</span>`;
-  chips($("usdtNet"), netItems("USDT"), S.usdtNet, v => S.usdtNet = v);
-
-  // AML
-  const aml = md === "swap" ? "Перед обменом оператор проверит кошелёк отправителя по <b>AML</b>. Обмен проходит только после проверки."
-            : sellUsdt ? "Адрес для отправки USDT пришлёт оператор. Входящие монеты проходят <b>AML</b>-проверку." : "";
-  $("amlHint").hidden = !aml; $("amlText").innerHTML = aml;
-
-  // способ получения
   chips($("method"), [{ value: "Доставка курьером", label: "🛵 Доставка курьером" },
                       { value: "Выдача через банкомат", label: "🏧 Через банкомат", disabled: !C.atm }], S.method, v => S.method = v);
-  $("atmNote").textContent = C.atm ? "" : "Выдача через банкомат пока только в Таиланде и Вьетнаме.";
+  $("atmNote").hidden = C.atm; $("atmNote").textContent = "Выдача через банкомат пока только в Таиланде и Вьетнаме.";
 
-  // сумма
-  const inRub = md === "rub" || (md === "usdt" && S.dir === "buy");
-  $("code").textContent = inRub ? "RUB" : md === "usdt" ? "USDT" : S.give;
-  $("amountLabel").textContent = inRub ? "Сколько рублей отдаёте" : md === "usdt" ? "Сколько USDT продаёте" : `Сколько ${S.give} отдаёте`;
+  $("getUsdtBox").hidden = S.get !== "usdt";
+  chips($("getNet"), CONFIG.nets, S.getNet, v => S.getNet = v);
+  $("getRubBox").hidden = S.get !== "rub";
+  chips($("getRubHow"), [{ value: "cash", label: "💵 Наличными курьером" }, { value: "card", label: "💳 На карту" }], S.getRubHow, v => S.getRubHow = v);
+  $("getRubCity").hidden = S.getRubHow !== "cash";
+  chips($("getRubCity"), CONFIG.rubCities, S.getRubCity, v => S.getRubCity = v);
 
-  // кто вы (из Telegram)
+  const base = tiers().find(([, x]) => x === 0);
+  $("ratesNote").textContent = (base ? `Курс для суммы от ${fmtFiat(Math.max(base[0], CONFIG.rates.min_online))} ₽, на меньшие суммы ниже. ` : "") + "Точный курс подтвердит оператор.";
+
+  // 三 сумма
+  $("code").textContent = giveRub() ? "RUB" : "USDT";
+  $("amountLabel").textContent = giveRub() ? "Сколько рублей отдаёте" : "Сколько USDT отдаёте";
   if (TG_USER) {
     const name = TG_USER.username ? "@" + TG_USER.username : [TG_USER.first_name, TG_USER.last_name].filter(Boolean).join(" ");
     $("who").innerHTML = `Оператор свяжется с вами в Telegram: <b>${name.replace(/</g, "&lt;")}</b>`; $("who").hidden = false;
@@ -478,63 +411,51 @@ function render() {
   calc();
 }
 
-// сумма в рублях — по ней выбираются ступень и минималка
-function rubEquivalent(v) {
-  const r = rubPerUsdt(), md = S.mode;
-  if (md === "rub" || (md === "usdt" && S.dir === "buy")) return v;
-  if (md === "usdt") return v * r;
-  const usd = price(S.give, "usd");
-  return usd ? v * usd * r : null;
-}
-function isCourier() {
-  const md = S.mode;
-  if (md === "swap") return false;
-  if (md === "usdt") return S.rubHow === "cash";
-  return (md === "rub" && S.rubHow === "cash") || S.method === "Доставка курьером";
-}
 const tiers = () => [...CONFIG.rates.tiers].sort((a, b) => a[0] - b[0]);
 function tierExtra(rub) { let e = 0; for (const [from, x] of tiers()) if (rub >= from) e = x; return e / 100; }
+function isCourier() {
+  return S.give === "rub_cash" || (S.get === "cash" && S.method === "Доставка курьером") || (S.get === "rub" && S.getRubHow === "cash");
+}
 
 let LAST = null;
 function calc() {
-  const v = parse($("amount").value), C = CONFIG.countries[S.country], f = C.cur.toLowerCase(), md = S.mode;
-  const rubUsdt = rubPerUsdt(), rubEq = rubEquivalent(v), ex = rubEq === null ? 0 : tierExtra(rubEq);
+  const v = parse($("amount").value), C = CONFIG.countries[S.country], r = rubPerUsdt();
+  const rubEq = giveRub() ? v : v * r, ex = tierExtra(rubEq);
   const min = isCourier() ? CONFIG.rates.min_cash : CONFIG.rates.min_online;
-  let out = null, cur = C.sign, line = "", profit = null;
-  if (md === "crypto") {
-    const p = price(S.give, f);
-    if (p) { const k = m("crypto") + ex; out = v * p * (1 - k); line = `1 ${S.give} ≈ ${fmtRate(p * (1 - k))} ${C.sign}`;
-             profit = { amt: v * p * k, cur: C.sign, usdt: v * price(S.give, "usd") * k }; }
-  } else if (md === "rub") {
-    const k = m(S.rubHow === "cash" ? "rub_cash" : "rub_card") + ex, loc = price("USDT", f), u = localUnit(C);
-    out = v / rubUsdt * loc * (1 - k); line = `${fmtFiat(u)} ${C.sign} ≈ ${fmtRate(u * rubUsdt / loc / (1 - k))} ₽`;
-    profit = { amt: v / rubUsdt * loc * k, cur: C.sign, usdt: v / rubUsdt * k };
-  } else if (md === "swap") {
-    cur = S.get;
-    const a = price(S.give, "usd"), b = price(S.get, "usd"), k = m("swap") + ex;
-    if (a && b) { out = v * a / b * (1 - k); line = `1 ${S.give} ≈ ${fmtCoin(a / b * (1 - k))} ${S.get}`;
-                  profit = { amt: v * k, cur: S.give, usdt: v * a * k }; }
+  let out, cur, line, profit;
+  if (S.get === "cash") {
+    cur = C.sign;
+    if (giveRub()) { const rate = rubPerLocal(C, ex); out = v / rate * localUnit(C); line = `${fmtFiat(localUnit(C))} ${C.sign} ≈ ${fmtRate(rate)} ₽`;
+                     const fair = v / r * USDT[C.cur.toLowerCase()]; profit = { amt: fair - out, cur: C.sign, usdt: (fair - out) / USDT[C.cur.toLowerCase()] }; }
+    else { const rate = localPerUsdt(C, ex); out = v * rate; line = `1 USDT ≈ ${fmtRate(rate)} ${C.sign}`;
+           const fair = v * USDT[C.cur.toLowerCase()]; profit = { amt: fair - out, cur: C.sign, usdt: (fair - out) / USDT[C.cur.toLowerCase()] }; }
+  } else if (S.get === "usdt") {
+    const buy = +(CONFIG.rates.usdt_buy * (1 + ex)).toFixed(2); cur = "USDT"; out = v / buy; line = `1 USDT = ${fmtRate(buy)} ₽`;
+    profit = { amt: v - out * r, cur: "₽", usdt: (v - out * r) / r };
   } else {
-    const buy = +(CONFIG.rates.usdt_buy * (1 + ex)).toFixed(2), sell = +(CONFIG.rates.usdt_sell * (1 - ex)).toFixed(2);
-    if (S.dir === "buy") { cur = "USDT"; out = v / buy; line = `1 USDT = ${fmtRate(buy)} ₽`;
-                           profit = { amt: v - out * rubUsdt, cur: "₽", usdt: (v - out * rubUsdt) / rubUsdt }; }
-    else { cur = "₽"; out = v * sell; line = `1 USDT = ${fmtRate(sell)} ₽`;
-           profit = { amt: v * rubUsdt - out, cur: "₽", usdt: (v * rubUsdt - out) / rubUsdt }; }
+    const sell = +(CONFIG.rates.usdt_sell * (1 - ex)).toFixed(2); cur = "₽"; out = v * sell; line = `1 USDT = ${fmtRate(sell)} ₽`;
+    profit = { amt: v * r - out, cur: "₽", usdt: (v * r - out) / r };
   }
-  $("outLabel").textContent = md === "usdt" ? "Вы получите" : "Вы получите примерно";
-  if (out === null) { $("out").textContent = "по запросу"; $("outCur").textContent = ""; $("rateline").textContent = "курс назовёт оператор"; }
-  else { $("out").textContent = cur === "USDT" || md === "swap" ? fmtCoin(out) : fmtFiat(out); $("outCur").textContent = cur; $("rateline").textContent = line; }
+  $("outLabel").textContent = S.get === "cash" ? "Вы получите примерно" : "Вы получите";
+  $("out").textContent = cur === "USDT" ? fmtUsdt(out) : fmtFiat(out); $("outCur").textContent = cur; $("rateline").textContent = line;
 
   let hint = "", bad = false;
-  if (rubEq !== null && v > 0) {
-    const unit = $("code").textContent, perUnit = rubEq / v;
-    const inUnits = rub => unit === "RUB" ? "" : ` ≈ ${fmtCoin(Math.ceil(rub / perUnit * 100) / 100)} ${unit}`;
+  if (v > 0) {
+    const inUnits = rub => giveRub() ? "" : ` ≈ ${fmtUsdt(Math.ceil(rub / r))} USDT`;
     if (rubEq < min) { bad = true; hint = `Минимум ${isCourier() ? "с выездом курьера" : "для обмена"}: ${fmtFiat(min)} ₽${inUnits(min)}.`; }
     else { const next = tiers().find(([from, x]) => from > rubEq && x < ex * 100); if (next) hint = `От ${fmtFiat(next[0])} ₽${inUnits(next[0])} курс лучше.`; }
   }
   $("tierHint").textContent = hint; $("tierHint").hidden = !hint; $("tierHint").classList.toggle("bad", bad);
   LAST = { v, out, cur, line, profit, bad, hint };
 }
+
+// ввод суммы: сразу ставим запятые 100,000
+$("amount").addEventListener("input", e => {
+  const raw = e.target.value.replace(/[^\d.]/g, ""), [i, ...d] = raw.split(".");
+  const int = i ? Number(i).toLocaleString("en-US") : "";
+  e.target.value = d.length ? `${int}.${d.join("").slice(0, 2)}` : int;
+  calc();
+});
 
 $("geo").innerHTML = `<dt>Приём ₽</dt><dd>${CONFIG.rubCities.join(" · ")} · переводом из любого города</dd>` +
   Object.values(CONFIG.countries).map(c => `<dt>${c.flag} ${c.name}</dt><dd>${c.cities.join(" · ")}${c.atm ? " · банкоматы" : ""}</dd>`).join("");
@@ -548,22 +469,21 @@ function openTg(e, href) { if (tg && /^https:\/\/t\.me\//.test(href)) { e.preven
 $("reviews").addEventListener("click", e => openTg(e, CONFIG.reviews));
 $("mgr2").addEventListener("click", e => openTg(e, $("mgr2").href));
 $("mgr").addEventListener("click", e => openTg(e, $("mgr").href));
-$("amount").addEventListener("input", calc);
 
 // ---------- заявка ----------
 function orderText() {
-  const md = S.mode, C = CONFIG.countries[S.country], net = n => n ? ` (${n})` : "";
-  const res = LAST.out === null ? "по курсу оператора" : `${md === "usdt" ? "" : "≈ "}${LAST.cur === "USDT" || md === "swap" ? fmtCoin(LAST.out) : fmtFiat(LAST.out)} ${LAST.cur}`;
-  const rubTxt = S.rubHow === "cash" ? `наличными, курьер в г. ${S.rubCity}` : "переводом на карту";
-  const where = `Где: ${C.flag} ${C.name}, ${S.city}`;
-  if (md === "swap")
-    return `Крипта → крипта\nОтдаю: ${fmtCoin(LAST.v)} ${S.give}${net(S.giveNet)}\nПолучаю: ${S.get}${net(S.getNet)} ${res}\nС адреса: ${$("fromAddr").value.trim()}\nНа адрес: ${$("toAddr").value.trim()}\n${where}\nAML-проверка: нужна`;
-  if (md === "usdt")
-    return S.dir === "buy"
-      ? `Покупка USDT за рубли\nОтдаю: ${fmtFiat(LAST.v)} ₽ (${rubTxt})\nПолучаю: ${res} (${S.usdtNet})\nКурс: ${LAST.line}\nАдрес USDT: ${$("usdtAddr").value.trim()}\n${where}`
-      : `Продажа USDT за рубли\nОтдаю: ${fmtCoin(LAST.v)} USDT (${S.usdtNet})\nПолучаю: ${res} (${rubTxt})\nКурс: ${LAST.line}\n${where}\nAML-проверка: нужна`;
-  const giveTxt = md === "rub" ? `${fmtFiat(LAST.v)} ₽ (${rubTxt})` : `${fmtCoin(LAST.v)} ${S.give}${net(S.giveNet)}`;
-  return `${md === "rub" ? "Рубли" : "Крипта"} → ${C.word}\nОтдаю: ${giveTxt}\nПолучаю: ${res}\nКурс: ${LAST.line}\n${where}\nСпособ: ${S.method}`;
+  const C = CONFIG.countries[S.country];
+  const give = S.give === "rub_cash" ? `${fmtFiat(LAST.v)} ₽ наличными (курьер, ${S.giveRubCity})`
+             : S.give === "rub_card" ? `${fmtFiat(LAST.v)} ₽ переводом на карту`
+             : `${fmtUsdt(LAST.v)} USDT (${S.giveNet})`;
+  const outTxt = LAST.cur === "USDT" ? fmtUsdt(LAST.out) : fmtFiat(LAST.out);
+  let t = `Отдаю: ${give}\n`;
+  if (S.get === "cash") t += `Получаю: ≈ ${outTxt} ${C.sign} наличными\nГде: ${C.flag} ${C.name}, ${S.city}\nСпособ: ${S.method}`;
+  else if (S.get === "usdt") t += `Получаю: ${outTxt} USDT (${S.getNet})\nАдрес USDT: ${$("usdtAddr").value.trim()}`;
+  else t += `Получаю: ${outTxt} ₽ ${S.getRubHow === "cash" ? `наличными (курьер, ${S.getRubCity})` : "на карту"}`;
+  t += `\nКурс: ${LAST.line}`;
+  if (S.give === "usdt") t += "\nAML-проверка USDT: нужна";
+  return t;
 }
 
 function showDone(title, note, text, link) {
@@ -575,16 +495,13 @@ function showDone(title, note, text, link) {
 
 $("send").onclick = async () => {
   calc();
-  const md = S.mode;
   let err = !LAST.v ? "Введите сумму обмена." : LAST.bad ? LAST.hint : "";
-  if (!err && md === "swap" && !$("fromAddr").value.trim()) err = "Укажите адрес, с которого отправите монеты: он нужен для AML-проверки.";
-  if (!err && md === "swap" && !$("toAddr").value.trim()) err = "Укажите адрес, куда отправить монеты.";
-  if (!err && md === "usdt" && S.dir === "buy" && !$("usdtAddr").value.trim()) err = "Укажите адрес, куда прислать USDT.";
+  if (!err && S.get === "usdt" && !$("usdtAddr").value.trim()) err = "Укажите адрес, куда прислать USDT.";
   $("err").textContent = err; $("err").hidden = !err;
   if (err) return;
 
   const t = orderText(), p = LAST.profit;
-  const profit = p ? `≈ ${p.cur === "₽" || p.amt >= 100 ? fmtFiat(p.amt) : fmtCoin(p.amt)} ${p.cur} (≈ ${fmtCoin(Math.round(p.usdt * 100) / 100)} USDT)` : "посчитать вручную";
+  const profit = `≈ ${fmtFiat(p.amt)} ${p.cur} (≈ ${fmtUsdt(Math.round(p.usdt * 100) / 100)} USDT)`;
   const payload = { text: t, profit, market: LIVE ? "рынок" : "примерный" };
 
   // 1) Открыто из бота: заявка уходит на сервер бота вместе с данными Telegram (ник и ID)
