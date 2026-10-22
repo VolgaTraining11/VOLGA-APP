@@ -140,10 +140,56 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
 .who b{color:var(--washi);font-weight:600}
 .who::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#5cc28a}
 #reviews{display:block}
+
+/* загрузочный экран */
+#splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  background:radial-gradient(circle at 50% 42%,rgba(214,58,47,.28),transparent 55%),var(--ink);transition:opacity .55s ease,visibility .55s}
+#splash.hide{opacity:0;visibility:hidden}
+.sp-logo{position:relative;width:150px;height:150px}
+.sp-logo img{width:100%;height:100%;border-radius:50%;border:2px solid var(--gold);animation:spIn .9s cubic-bezier(.2,.8,.2,1) both}
+.sp-logo::before,.sp-logo::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:1px solid var(--gold);opacity:0;animation:spRing 2.2s ease-out infinite}
+.sp-logo::after{animation-delay:1.1s}
+.sp-title{display:flex;align-items:center;gap:14px;animation:spUp .8s .25s both}
+.sp-title b{font-weight:800;font-size:1.6rem;letter-spacing:.14em}
+.sp-title .hanko{transform:rotate(3deg) scale(.8)}
+.sp-bar{width:140px;height:2px;border-radius:2px;background:var(--line);overflow:hidden;animation:spUp .8s .4s both}
+.sp-bar::before{content:"";display:block;width:40%;height:100%;background:var(--shu);animation:spBar 1.1s ease-in-out infinite}
+.sp-sub{font-size:.8rem;color:var(--muted);letter-spacing:.2em;animation:spUp .8s .5s both}
+@keyframes spIn{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes spRing{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+@keyframes spUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spBar{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){#splash *,#splash *::before,#splash *::after{animation:none!important}}
+
+/* отзывы */
+.fb-head{display:flex;align-items:baseline;gap:10px}
+.fb-avg{font-weight:800;font-size:1.6rem}
+.fb-avg small{font-size:.85rem;color:var(--muted);font-weight:500;margin-left:6px}
+.fb-list{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;margin:0 -4px;padding-inline:4px}
+.fb-card{flex:0 0 78%;scroll-snap-align:start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:6px;min-width:0}
+.fb-card .st{color:var(--gold);letter-spacing:2px;font-size:.9rem}
+.fb-card p{margin:0;font-size:.92rem;line-height:1.45;overflow-wrap:anywhere}
+.fb-card .by{font-size:.78rem;color:var(--muted)}
+
+/* реклама */
+#promo{display:block;text-decoration:none;color:var(--washi);position:relative;overflow:hidden;border-radius:14px;border:1px solid rgba(196,164,104,.45);
+  background:linear-gradient(120deg,rgba(214,58,47,.22),rgba(13,20,36,.9) 60%)}
+.pr-track{display:flex;transition:transform .5s ease}
+.pr-slide{flex:0 0 100%;display:flex;align-items:center;gap:12px;padding:16px 18px;box-sizing:border-box;font-weight:600;min-height:64px;text-decoration:none;color:var(--washi)}
+.pr-slide .go{margin-left:auto;color:var(--gold);flex:none}
+.pr-dots{position:absolute;right:12px;bottom:7px;display:flex;gap:5px}
+.pr-dots i{width:5px;height:5px;border-radius:50%;background:var(--line)}
+.pr-dots i.on{background:var(--gold)}
 </style>
 </head>
 <body>
 
+<div id="splash" aria-hidden="true">
+  <div class="sp-logo"><img id="spImg" alt=""></div>
+  <div class="sp-title"><b>VOLGA EXCHANGE</b></div>
+  <div class="sp-bar"></div>
+  <div class="sp-sub">両替 · ОБМЕН</div>
+</div>
 <canvas id="waves" aria-hidden="true"></canvas>
 <main class="app">
   <header class="hero">
@@ -151,6 +197,7 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
     <div class="brand"><h1>VOLGA<br>EXCHANGE</h1></div>
     <div class="hanko" aria-label="Рёгаэ — обмен"><span>両</span><span>替</span></div>
   </header>
+  <script>document.getElementById("spImg").src = document.querySelector(".logo img").src;</script>
 
   <div id="form" class="group" style="gap:18px">
   <!-- 一 что отдаёте -->
@@ -165,8 +212,8 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
       <div class="label">Как переведёте</div>
       <div class="chips" id="rubVia"></div>
       <div class="group" id="bybitBox" hidden>
-        <label class="label" for="bybitNick">Ваш ник или UID на Bybit</label>
-        <input class="text" id="bybitNick" placeholder="например 123456789" autocomplete="off" spellcheck="false">
+        <label class="label" for="bybitNick">Ваш ник или UID на Bybit (необязательно)</label>
+        <input class="text" id="bybitNick" placeholder="можно не заполнять — оператор уточнит" autocomplete="off" spellcheck="false">
       </div>
     </div>
     <div class="sub-box" id="giveUsdtBox" hidden>
@@ -194,8 +241,8 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
     <div class="sub-box" id="getUsdtBox" hidden>
       <div class="label">Сеть USDT</div>
       <div class="chips small" id="getNet"></div>
-      <label class="label" for="usdtAddr">Ваш адрес USDT</label>
-      <input class="text mono" id="usdtAddr" placeholder="Куда прислать USDT" autocomplete="off" spellcheck="false">
+      <label class="label" for="usdtAddr">Ваш адрес USDT (необязательно)</label>
+      <input class="text mono" id="usdtAddr" placeholder="можно не заполнять — оператор уточнит" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="sub-box" id="getRubBox" hidden>
@@ -239,12 +286,20 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
     <button class="ghost" id="again" type="button" style="width:100%">Новая заявка</button>
   </section>
 
+  <section class="panel" id="fbBox">
+    <h2 class="ptitle"><span class="jp">評判</span>Отзывы<span class="sub" id="fbCount"></span></h2>
+    <div class="fb-head" id="fbHead" hidden><span class="fb-avg" id="fbAvg"></span></div>
+    <div class="fb-list" id="fbList"></div>
+    <p class="note" id="fbEmpty">Отзывы появятся после первых обменов. Здесь показываются только настоящие отзывы клиентов.</p>
+    <a class="ghost" id="reviews" href="#" target="_blank" rel="noopener" hidden>📢 Все отзывы в канале</a>
+  </section>
+
   <section class="panel">
     <h2 class="ptitle"><span class="jp">地図</span>Где работаем</h2>
     <dl class="info" id="geo"></dl>
     <dl class="info"><dt>Оператор</dt><dd><a id="mgr2" href="https://t.me/volga163rr" target="_blank" rel="noopener">@volga163rr</a></dd></dl>
-    <a class="ghost" id="reviews" href="#" target="_blank" rel="noopener" hidden>⭐ Отзывы клиентов</a>
   </section>
+  <a id="promo" hidden><div class="pr-track" id="prTrack"></div><div class="pr-dots" id="prDots"></div></a>
   <footer>鯉 · 波 · 両替</footer>
 </main>
 
@@ -252,7 +307,13 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
 /* ===== НАСТРОЙКИ: меняй здесь ===== */
 const CONFIG = {
   manager: "volga163rr",      // ник оператора без @ (бот подставит свой из /admin)
-  reviews: "",                // ссылка на отзывы (бот подставит свою из /admin)
+  reviews: "",                // ссылка на канал с отзывами (бот подставит свою из /admin)
+  // Реклама внизу приложения (бот подставит свою из /admin → 📣 Реклама)
+  promos: [
+    { text: "🎏 Чем больше сумма — тем лучше курс", url: "" },
+    { text: "🏦 Наличные, перевод на счёт или банкомат — в 5 странах", url: "" },
+    { text: "⚡ Рубли через Bybit P2P — без верификации", url: "" },
+  ],
   // Курсы по умолчанию. Бот присылает свежие из админ-панели.
   rates: {
     crypto: 3,      // % наценки: USDT → наличные
@@ -321,6 +382,8 @@ async function loadAll() {
       const r = await fetch(API + "/rates");
       if (r.ok) { const j = await r.json(); Object.assign(CONFIG.rates, j.rates || {});
         if (j.manager) CONFIG.manager = j.manager; if (j.reviews !== undefined) CONFIG.reviews = j.reviews;
+        if (Array.isArray(j.promos)) CONFIG.promos = j.promos;
+        if (Array.isArray(j.feedback)) FEEDBACK = j.feedback;
         if (j.fixed) for (const c in j.fixed) if (CONFIG.fixed[c]) CONFIG.fixed[c] = { rub: +j.fixed[c].rub || 0, usdt: +j.fixed[c].usdt || 0 };
         setMgr(); }
     } catch (e) {}
@@ -330,7 +393,7 @@ async function loadAll() {
     const j = await r.json();
     if (j.tether && j.tether.rub) { USDT = { ...CONFIG.fallback, ...j.tether }; LIVE = true; }
   } catch (e) {}
-  render();
+  render(); renderPromo(); renderFeedback(); hideSplash();
 }
 const rubPerUsdt = () => CONFIG.rates.rub_market > 0 ? CONFIG.rates.rub_market : USDT.rub;
 const m = key => CONFIG.rates[key] / 100;
@@ -452,6 +515,7 @@ function render() {
   calc();
 }
 
+const BELOW_MIN_EXTRA = 0.03;   // сумма меньше минималки: курс ещё на 3% ниже, «примерный»
 const tiers = () => [...CONFIG.rates.tiers].sort((a, b) => a[0] - b[0]);
 function tierExtra(rub) { let e = 0; for (const [from, x] of tiers()) if (rub >= from) e = x; return e / 100; }
 function isCourier() {
@@ -461,8 +525,10 @@ function isCourier() {
 let LAST = null;
 function calc() {
   const v = parse($("amount").value), C = CONFIG.countries[S.country], r = rubPerUsdt();
-  const rubEq = giveRub() ? v : v * r, ex = tierExtra(rubEq);
   const min = isCourier() ? CONFIG.rates.min_cash : CONFIG.rates.min_online;
+  const rubEq = giveRub() ? v : v * r;
+  const below = v > 0 && rubEq < min;                       // меньше минималки: можно, но курс примерный
+  const ex = tierExtra(rubEq) + (below ? BELOW_MIN_EXTRA : 0);
   let out, cur, line, profit;
   if (S.get === "cash") {
     cur = C.sign;
@@ -477,17 +543,17 @@ function calc() {
     const sell = +(CONFIG.rates.usdt_sell * (1 - ex)).toFixed(2); cur = "₽"; out = v * sell; line = `1 USDT = ${fmtRate(sell)} ₽`;
     profit = { amt: v * r - out, cur: "₽", usdt: (v * r - out) / r };
   }
-  $("outLabel").textContent = S.get === "cash" ? "Вы получите примерно" : "Вы получите";
+  $("outLabel").textContent = S.get === "cash" || below ? "Вы получите примерно" : "Вы получите";
   $("out").textContent = cur === "USDT" ? fmtUsdt(out) : fmtFiat(out); $("outCur").textContent = cur; $("rateline").textContent = line;
 
   let hint = "", bad = false;
   if (v > 0) {
     const inUnits = rub => giveRub() ? "" : ` ≈ ${fmtUsdt(Math.ceil(rub / r))} USDT`;
-    if (rubEq < min) { bad = true; hint = `Минимум ${isCourier() ? "с выездом курьера" : "для обмена"}: ${fmtFiat(min)} ₽${inUnits(min)}.`; }
+    if (below) { bad = true; hint = `Сумма меньше ${fmtFiat(min)} ₽${inUnits(min)}${isCourier() ? " (с выездом курьера)" : ""}: курс примерный, точную сумму уточните у оператора.`; }
     else { const next = tiers().find(([from, x]) => from > rubEq && x < ex * 100); if (next) hint = `От ${fmtFiat(next[0])} ₽${inUnits(next[0])} курс лучше.`; }
   }
   $("tierHint").textContent = hint; $("tierHint").hidden = !hint; $("tierHint").classList.toggle("bad", bad);
-  LAST = { v, out, cur, line, profit, bad, hint };
+  LAST = { v, out, cur, line, profit, bad, hint, below };
 }
 
 // ввод суммы: сразу ставим запятые 100,000
@@ -515,15 +581,16 @@ $("mgr").addEventListener("click", e => openTg(e, $("mgr").href));
 function orderText() {
   const C = CONFIG.countries[S.country];
   const give = S.give === "rub_cash" ? `${fmtFiat(LAST.v)} ₽ наличными (курьер, ${S.giveRubCity})`
-             : S.give === "rub_card" && S.rubVia === "bybit" ? `${fmtFiat(LAST.v)} ₽ через Bybit P2P (Bybit: ${$("bybitNick").value.trim()})`
+             : S.give === "rub_card" && S.rubVia === "bybit" ? `${fmtFiat(LAST.v)} ₽ через Bybit P2P (Bybit: ${$("bybitNick").value.trim() || "уточнит у оператора"})`
              : S.give === "rub_card" ? `${fmtFiat(LAST.v)} ₽ переводом на карту`
              : `${fmtUsdt(LAST.v)} USDT (${S.giveNet})`;
   const outTxt = LAST.cur === "USDT" ? fmtUsdt(LAST.out) : fmtFiat(LAST.out);
   let t = `Отдаю: ${give}\n`;
   if (S.get === "cash") t += `Получаю: ≈ ${outTxt} ${C.sign} наличными\nГде: ${C.flag} ${C.name}, ${S.city}\nСпособ: ${S.method}`;
-  else if (S.get === "usdt") t += `Получаю: ${outTxt} USDT (${S.getNet})\nАдрес USDT: ${$("usdtAddr").value.trim()}`;
+  else if (S.get === "usdt") t += `Получаю: ${outTxt} USDT (${S.getNet})\nАдрес USDT: ${$("usdtAddr").value.trim() || "уточнит у оператора"}`;
   else t += `Получаю: ${outTxt} ₽ ${S.getRubHow === "cash" ? `наличными (курьер, ${S.getRubCity})` : "на карту"}`;
   t += `\nКурс: ${LAST.line}`;
+  if (LAST.below) t += "\n⚠️ Сумма ниже минимума — курс примерный, уточнить с клиентом";
   if (S.give === "usdt") t += "\nAML-проверка USDT: нужна";
   return t;
 }
@@ -537,9 +604,7 @@ function showDone(title, note, text, link) {
 
 $("send").onclick = async () => {
   calc();
-  let err = !LAST.v ? "Введите сумму обмена." : LAST.bad ? LAST.hint : "";
-  if (!err && S.get === "usdt" && !$("usdtAddr").value.trim()) err = "Укажите адрес, куда прислать USDT.";
-  if (!err && S.give === "rub_card" && S.rubVia === "bybit" && !$("bybitNick").value.trim()) err = "Укажите ваш ник или UID на Bybit.";
+  let err = !LAST.v ? "Введите сумму обмена." : "";   // адрес и UID необязательны — оператор уточнит
   $("err").textContent = err; $("err").hidden = !err;
   if (err) return;
 
@@ -579,7 +644,57 @@ $("copy").onclick = async () => {
 };
 $("again").onclick = () => { $("done").hidden = true; $("form").hidden = false; $("copy").textContent = "Скопировать текст"; };
 
-render(); loadAll();
+// ---------- загрузочный экран, реклама, отзывы ----------
+let FEEDBACK = [];
+const SPLASH_AT = Date.now();
+function hideSplash() {
+  const wait = Math.max(0, 1200 - (Date.now() - SPLASH_AT));
+  setTimeout(() => $("splash").classList.add("hide"), wait);
+}
+setTimeout(hideSplash, 3500);   // на случай, если сеть долго молчит
+
+let promoTimer = null;
+function renderPromo() {
+  const list = (CONFIG.promos || []).filter(p => p && p.text);
+  $("promo").hidden = !list.length;
+  if (!list.length) return;
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  $("prTrack").innerHTML = list.map((p, i) =>
+    `<span class="pr-slide" data-i="${i}">${esc(p.text)}${p.url ? '<span class="go">→</span>' : ""}</span>`).join("");
+  $("prDots").innerHTML = list.length > 1 ? list.map(() => "<i></i>").join("") : "";
+  let i = 0;
+  const show = n => {
+    i = (n + list.length) % list.length;
+    $("prTrack").style.transform = `translateX(-${i * 100}%)`;
+    [...$("prDots").children].forEach((d, k) => d.classList.toggle("on", k === i));
+    const u = list[i].url; $("promo").href = u || "#"; $("promo").style.cursor = u ? "pointer" : "default";
+  };
+  show(0);
+  clearInterval(promoTimer);
+  if (list.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) promoTimer = setInterval(() => show(i + 1), 4500);
+  $("promo").onclick = e => {
+    const u = list[i].url;
+    if (!u) { e.preventDefault(); return; }
+    if (tg) { e.preventDefault(); /^https:\/\/t\.me\//.test(u) ? tg.openTelegramLink(u) : tg.openLink(u); }
+    else { $("promo").target = "_blank"; }
+  };
+}
+
+function renderFeedback() {
+  const list = FEEDBACK || [];
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  $("fbEmpty").hidden = list.length > 0;
+  $("fbHead").hidden = !list.length;
+  $("fbCount").textContent = list.length ? `${list.length} шт.` : "";
+  if (list.length) {
+    const avg = list.reduce((a, f) => a + f.stars, 0) / list.length;
+    $("fbAvg").innerHTML = `${avg.toFixed(1)} ★<small>средняя оценка</small>`;
+  }
+  $("fbList").innerHTML = list.map(f => `<div class="fb-card"><span class="st">${"★".repeat(f.stars)}${"☆".repeat(5 - f.stars)}</span>` +
+    (f.text ? `<p>${esc(f.text)}</p>` : "") + `<span class="by">${esc(f.name)} · ${esc(f.date)}</span></div>`).join("");
+}
+
+render(); renderPromo(); renderFeedback(); loadAll();
 
 // engraved seigaiha waves
 (function () {
