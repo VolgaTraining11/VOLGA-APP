@@ -623,7 +623,7 @@ function showDone(title, note, text) {
 // Открыто не из бота (по ссылке, в браузере): отправить заявку нельзя — подсказываем открыть бота
 function showOutside() {
   $("doneTitle").textContent = "Откройте обменник в боте";
-  $("doneNote").textContent = "Заявки принимаются только через бота — так оператор увидит ваш Telegram и ответит вам. Откройте бота и нажмите «🔴 Открыть обменник».";
+  $("doneNote").textContent = "Заявки принимаются только через бота — так оператор увидит ваш Telegram и ответит вам. Откройте бота и нажмите «🎏 Открыть обменник».";
   $("summary").hidden = true;
   $("mgr").dataset.close = ""; $("mgr").hidden = !CONFIG.bot;
   if (CONFIG.bot) { $("mgr").href = "https://t.me/" + CONFIG.bot; $("mgr").textContent = "🤖 Открыть бота"; }
