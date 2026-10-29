@@ -51,6 +51,7 @@ body{font-family:var(--f-body);font-weight:400;font-size:15px;line-height:1.5;-w
 
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .seg button,.chips button{font:inherit;color:var(--washi);background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;transition:background .15s,border-color .15s}
+.seg.two{grid-template-columns:1fr 1fr;margin-bottom:12px}
 .seg button b{display:block;font-family:var(--f-display);font-size:1.15rem}
 .seg button span{font-size:.75rem;color:var(--muted)}
 .seg button[aria-pressed="true"],.chips button[aria-pressed="true"]{border-color:var(--gold);background:rgba(196,164,104,.12)}
@@ -256,6 +257,10 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
   <!-- 三 сумма -->
   <section class="panel">
     <h2 class="ptitle"><span class="step">三</span>Сумма</h2>
+    <div class="seg two" id="modeSeg">
+      <button type="button" data-mode="give" aria-pressed="true"><b>Отдаю</b><span>знаю, сколько отдам</span></button>
+      <button type="button" data-mode="get" aria-pressed="false"><b>Получаю</b><span>знаю, сколько нужно</span></button>
+    </div>
     <div class="group">
       <div class="label" id="amountLabel">Сколько отдаёте</div>
       <label class="field" for="amount">
@@ -263,7 +268,7 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
         <span class="code" id="code">RUB</span>
       </label>
     </div>
-    <div class="flow" id="rateline">—</div>
+    <div class="flow" id="rateline" hidden>—</div>
     <p class="tierhint" id="tierHint" hidden></p>
     <div>
       <div class="label" id="outLabel">Вы получите примерно</div>
@@ -279,9 +284,9 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
   <section class="panel done" id="done" hidden>
     <div class="seal">受</div>
     <h2 id="doneTitle">Заявка принята</h2>
-    <p class="note" id="doneNote">Оператор напишет вам в Telegram в ближайшее время.</p>
+    <p class="note" id="doneNote">Оператор напишет вам в чате с ботом.</p>
     <pre id="summary"></pre>
-    <a class="cta" id="mgr" href="https://t.me/volga163rr" target="_blank" rel="noopener" style="width:100%;box-sizing:border-box;text-align:center;text-decoration:none">Написать оператору</a>
+    <a class="cta" id="mgr" href="#" target="_blank" rel="noopener" style="width:100%;box-sizing:border-box;text-align:center;text-decoration:none">💬 Вернуться в чат с ботом</a>
     <button class="ghost" id="copy" type="button" style="width:100%">Скопировать текст</button>
     <button class="ghost" id="again" type="button" style="width:100%">Новая заявка</button>
   </section>
@@ -297,7 +302,7 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
   <section class="panel">
     <h2 class="ptitle"><span class="jp">地図</span>Где работаем</h2>
     <dl class="info" id="geo"></dl>
-    <dl class="info"><dt>Оператор</dt><dd><a id="mgr2" href="https://t.me/volga163rr" target="_blank" rel="noopener">@volga163rr</a></dd></dl>
+    <dl class="info"><dt>Чат</dt><dd>вопросы и обмен — в чате с ботом</dd><dt>Поддержка</dt><dd><a id="mgr2" href="https://t.me/volga163rr" target="_blank" rel="noopener">@volga163rr</a></dd></dl>
   </section>
   <a id="promo" hidden><div class="pr-track" id="prTrack"></div><div class="pr-dots" id="prDots"></div></a>
   <footer>鯉 · 波 · 両替</footer>
@@ -306,7 +311,8 @@ footer{text-align:center;color:#56627f;font-size:.75rem;font-family:var(--f-disp
 <script>
 /* ===== НАСТРОЙКИ: меняй здесь ===== */
 const CONFIG = {
-  manager: "volga163rr",      // ник оператора без @ (бот подставит свой из /admin)
+  showRates: false,           // false = клиент видит только итоговую сумму, без курса; true = показывать курс
+  manager: "volga163rr",      // ник поддержки без @ (бот подставит свой из /admin). Обычная переписка — в чате с ботом
   reviews: "",                // ссылка на канал с отзывами (бот подставит свою из /admin)
   // Реклама внизу приложения (бот подставит свою из /admin → 📣 Реклама)
   promos: [
@@ -333,11 +339,11 @@ const CONFIG = {
   rubCities: ["Москва", "Санкт-Петербург", "Самара"],
   nets: ["TRC20", "TON", "BEP20", "ERC20"],
   countries: {
-    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true,  bank: true },
-    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true,  bank: true, perRub: true },
-    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    cities: ["Тбилиси", "Батуми"], atm: false, bank: true },
-    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    cities: ["Аланья", "Стамбул"], atm: false, bank: true },
-    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", cities: ["Дубай"], atm: false, bank: false },
+    TH: { flag: "🇹🇭", name: "Таиланд", cur: "THB", sign: "฿",   word: "баты",    gen: "бат",      cities: ["Бангкок", "Паттайя", "Пхукет"], atm: true,  bank: true },
+    VN: { flag: "🇻🇳", name: "Вьетнам", cur: "VND", sign: "₫",   word: "донги",   gen: "донгов",   cities: ["Нячанг", "Хошимин", "Дананг"], atm: true,  bank: true, perRub: true },
+    GE: { flag: "🇬🇪", name: "Грузия",  cur: "GEL", sign: "₾",   word: "лари",    gen: "лари",     cities: ["Тбилиси", "Батуми"], atm: false, bank: true },
+    TR: { flag: "🇹🇷", name: "Турция",  cur: "TRY", sign: "₺",   word: "лиры",    gen: "лир",      cities: ["Аланья", "Стамбул"], atm: false, bank: true },
+    AE: { flag: "🇦🇪", name: "ОАЭ",     cur: "AED", sign: "AED", word: "дирхамы", gen: "дирхамов", cities: ["Дубай"], atm: false, bank: false },
   },
   // Запасной курс USDT, если рынок не загрузился. Точный курс даст оператор.
   fallback: { usd: 1, rub: 82, thb: 33, vnd: 26200, gel: 2.7, try: 42, aed: 3.67 },
@@ -402,7 +408,8 @@ const localUnit = C => C.cur === "VND" ? 1000 : 1;
 // ---------- состояние ----------
 const S = { give: "rub_cash", giveRubCity: CONFIG.rubCities[0], giveNet: "TRC20",
             get: "cash", country: "TH", city: CONFIG.countries.TH.cities[0], method: "Доставка курьером",
-            getNet: "TRC20", getRubHow: "cash", getRubCity: CONFIG.rubCities[0], rubVia: "bybit" };
+            getNet: "TRC20", getRubHow: "cash", getRubCity: CONFIG.rubCities[0], rubVia: "bybit",
+            mode: "give" };   // give — клиент вводит, сколько отдаёт; get — сколько хочет получить
 // Верификация нужна, когда мы получаем рубли — кроме перевода через Bybit P2P (там имя проверяет Bybit)
 const needsKyc = () => S.give === "rub_cash" || (S.give === "rub_card" && S.rubVia === "card");
 const RUB_IN = { "Москва": "Москве", "Санкт-Петербург": "Петербурге", "Самара": "Самаре" };
@@ -455,7 +462,7 @@ function render() {
     { key: "usdt",     ic: "₮", title: "USDT", sub: "TRC20 · TON · BEP20 · ERC20" },
   ], S.give, v => {
     const wasRub = giveRub(); S.give = v;
-    if (giveRub() !== wasRub) { $("amount").value = giveRub() ? "100,000" : "1,000"; }
+    if (giveRub() !== wasRub && S.mode === "give") { $("amount").value = giveRub() ? "100,000" : "1,000"; }
     if (giveRub() && S.get === "rub") S.get = "cash";
     if (!giveRub() && S.get === "usdt") S.get = "cash";
   });
@@ -480,6 +487,7 @@ function render() {
                                   : `1 USDT = <em>до ${fmtRate(localPerUsdt(C, ex0))} ${C.sign}</em>` }];
   if (giveRub()) getList.push({ key: "usdt", ic: "₮", title: "USDT", sub: "на ваш кошелёк", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_buy)} ₽</em>` });
   else getList.push({ key: "rub", ic: "₽", title: "Рубли", sub: "наличными в России или на карту", r: `1 USDT = <em>${fmtRate(CONFIG.rates.usdt_sell)} ₽</em>` });
+  if (!CONFIG.showRates) getList.forEach(g => g.r = "");      // курс не показываем — только итоговую сумму
   cards($("get"), getList, S.get, v => S.get = v);
 
   $("cashBox").hidden = S.get !== "cash";
@@ -503,14 +511,25 @@ function render() {
   chips($("getRubCity"), CONFIG.rubCities, S.getRubCity, v => S.getRubCity = v);
 
   const base = tiers().find(([, x]) => x === 0);
-  $("ratesNote").textContent = (base ? `Курс для суммы от ${fmtFiat(Math.max(base[0], CONFIG.rates.min_online))} ₽, на меньшие суммы ниже. ` : "") + "Точный курс подтвердит оператор.";
+  $("ratesNote").textContent = CONFIG.showRates
+    ? (base ? `Курс для суммы от ${fmtFiat(Math.max(base[0], CONFIG.rates.min_online))} ₽, на меньшие суммы ниже. ` : "") + "Точный курс подтвердит оператор."
+    : "Сумму к получению посчитаем автоматически, итог подтвердит оператор.";
 
   // 三 сумма
-  $("code").textContent = giveRub() ? "RUB" : "USDT";
-  $("amountLabel").textContent = giveRub() ? "Сколько рублей отдаёте" : "Сколько USDT отдаёте";
+  const rc = recvCode();
+  if (S.mode === "get" && LAST_RECV && LAST_RECV !== rc) $("amount").value = RECV_DEFAULT[rc].toLocaleString("en-US");
+  LAST_RECV = rc;
+  document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === S.mode));
+  if (S.mode === "get") {
+    $("code").textContent = S.get === "cash" ? C.sign : S.get === "usdt" ? "USDT" : "RUB";
+    $("amountLabel").textContent = `Сколько ${S.get === "cash" ? C.gen : S.get === "usdt" ? "USDT" : "рублей"} хотите получить`;
+  } else {
+    $("code").textContent = giveRub() ? "RUB" : "USDT";
+    $("amountLabel").textContent = giveRub() ? "Сколько рублей отдаёте" : "Сколько USDT отдаёте";
+  }
   if (TG_USER) {
     const name = TG_USER.username ? "@" + TG_USER.username : [TG_USER.first_name, TG_USER.last_name].filter(Boolean).join(" ");
-    $("who").innerHTML = `Оператор свяжется с вами в Telegram: <b>${name.replace(/</g, "&lt;")}</b>`; $("who").hidden = false;
+    $("who").innerHTML = `Оператор напишет вам в чате с ботом · <b>${name.replace(/</g, "&lt;")}</b>`; $("who").hidden = false;
   }
   calc();
 }
@@ -522,9 +541,56 @@ function isCourier() {
   return S.give === "rub_cash" || (S.get === "cash" && S.method === "Доставка курьером") || (S.get === "rub" && S.getRubHow === "cash");
 }
 
+// Обратный расчёт: клиент вводит, сколько хочет получить, — ищем наименьшую сумму «отдаю», при которой получится не меньше.
+// Сумма к получению растёт вместе с суммой «отдаю» (на ступенях курс только лучше), поэтому хватает деления пополам.
+function solveGive(target) {
+  if (!(target > 0)) return 0;
+  let lo = 0, hi = 1;
+  while (quote(hi).out < target && hi < 1e13) hi *= 2;
+  for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; if (quote(mid).out >= target) hi = mid; else lo = mid; }
+  return giveRub() ? Math.ceil(hi / 10) * 10 : Math.ceil(hi * 100) / 100;   // рубли — до 10 ₽ вверх, USDT — до цента
+}
+const RECV_DEFAULT = { THB: 10000, VND: 5000000, GEL: 1000, TRY: 10000, AED: 1000, USDT: 500, RUB: 50000 };
+const recvCode = () => S.get === "cash" ? CONFIG.countries[S.country].cur : S.get === "usdt" ? "USDT" : "RUB";
+const fmtIn = (n, usdt) => usdt ? fmtUsdt(Math.round(n * 100) / 100) : fmtFiat(n);
+function setMode(mode) {
+  if (mode === S.mode) return;
+  calc();
+  const L = LAST;
+  S.mode = mode;
+  if (L && L.v > 0) $("amount").value = mode === "get" ? fmtIn(L.out, L.cur === "USDT") : fmtIn(L.v, !giveRub());
+  LAST_RECV = recvCode();
+  render();
+}
+let LAST_RECV = null;
+
 let LAST = null;
 function calc() {
-  const v = parse($("amount").value), C = CONFIG.countries[S.country], r = rubPerUsdt();
+  const typed = parse($("amount").value);
+  const q = quote(S.mode === "get" ? solveGive(typed) : typed);
+  const { v, out, cur, line, profit, below, ex, rubEq } = q, r = rubPerUsdt();
+  if (S.mode === "get") {
+    $("outLabel").textContent = S.get === "cash" || below ? "Нужно отдать примерно" : "Нужно отдать";
+    $("out").textContent = giveRub() ? fmtFiat(v) : fmtUsdt(v); $("outCur").textContent = giveRub() ? "₽" : "USDT";
+  } else {
+    $("outLabel").textContent = S.get === "cash" || below ? "Вы получите примерно" : "Вы получите";
+    $("out").textContent = cur === "USDT" ? fmtUsdt(out) : fmtFiat(out); $("outCur").textContent = cur;
+  }
+  $("rateline").textContent = line;
+
+  let hint = "", bad = false;
+  if (v > 0) {
+    const inUnits = rub => giveRub() ? "" : ` ≈ ${fmtUsdt(Math.ceil(rub / r))} USDT`;
+    if (below) { bad = true; hint = "Сумма примерная — итог уточнит оператор."; }
+    else { const next = tiers().find(([from, x]) => from > rubEq && x < ex * 100); if (next) hint = `От ${fmtFiat(next[0])} ₽${inUnits(next[0])} — выгоднее.`; }
+  }
+  $("tierHint").textContent = hint; $("tierHint").hidden = !hint; $("tierHint").classList.toggle("bad", bad);
+  LAST = { v, out, cur, line, profit, bad, hint, below };
+}
+
+// Сколько клиент получит, если отдаст v (рублей или USDT)
+function quote(v) {
+  const C = CONFIG.countries[S.country], r = rubPerUsdt();
   const min = isCourier() ? CONFIG.rates.min_cash : CONFIG.rates.min_online;
   const rubEq = giveRub() ? v : v * r;
   const below = v > 0 && rubEq < min;                       // меньше минималки: можно, но курс примерный
@@ -543,18 +609,10 @@ function calc() {
     const sell = +(CONFIG.rates.usdt_sell * (1 - ex)).toFixed(2); cur = "₽"; out = v * sell; line = `1 USDT = ${fmtRate(sell)} ₽`;
     profit = { amt: v * r - out, cur: "₽", usdt: (v * r - out) / r };
   }
-  $("outLabel").textContent = S.get === "cash" || below ? "Вы получите примерно" : "Вы получите";
-  $("out").textContent = cur === "USDT" ? fmtUsdt(out) : fmtFiat(out); $("outCur").textContent = cur; $("rateline").textContent = line;
-
-  let hint = "", bad = false;
-  if (v > 0) {
-    const inUnits = rub => giveRub() ? "" : ` ≈ ${fmtUsdt(Math.ceil(rub / r))} USDT`;
-    if (below) { bad = true; hint = `Сумма меньше ${fmtFiat(min)} ₽${inUnits(min)}${isCourier() ? " (с выездом курьера)" : ""}: курс примерный, точную сумму уточните у оператора.`; }
-    else { const next = tiers().find(([from, x]) => from > rubEq && x < ex * 100); if (next) hint = `От ${fmtFiat(next[0])} ₽${inUnits(next[0])} курс лучше.`; }
-  }
-  $("tierHint").textContent = hint; $("tierHint").hidden = !hint; $("tierHint").classList.toggle("bad", bad);
-  LAST = { v, out, cur, line, profit, bad, hint, below };
+  return { v, out, cur, line, profit, below, ex, rubEq };
 }
+
+document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
 
 // ввод суммы: сразу ставим запятые 100,000
 $("amount").addEventListener("input", e => {
@@ -575,7 +633,10 @@ setMgr();
 function openTg(e, href) { if (tg && /^https:\/\/t\.me\//.test(href)) { e.preventDefault(); tg.openTelegramLink(href); } }
 $("reviews").addEventListener("click", e => openTg(e, CONFIG.reviews));
 $("mgr2").addEventListener("click", e => openTg(e, $("mgr2").href));
-$("mgr").addEventListener("click", e => openTg(e, $("mgr").href));
+$("mgr").addEventListener("click", e => {
+  if ($("mgr").dataset.close === "1") { e.preventDefault(); if (tg) { try { tg.close(); } catch (x) {} } return; }   // назад в чат с ботом
+  openTg(e, $("mgr").href);
+});
 
 // ---------- заявка ----------
 function orderText() {
@@ -589,15 +650,21 @@ function orderText() {
   if (S.get === "cash") t += `Получаю: ≈ ${outTxt} ${C.sign} наличными\nГде: ${C.flag} ${C.name}, ${S.city}\nСпособ: ${S.method}`;
   else if (S.get === "usdt") t += `Получаю: ${outTxt} USDT (${S.getNet})\nАдрес USDT: ${$("usdtAddr").value.trim() || "уточнит у оператора"}`;
   else t += `Получаю: ${outTxt} ₽ ${S.getRubHow === "cash" ? `наличными (курьер, ${S.getRubCity})` : "на карту"}`;
-  t += `\nКурс: ${LAST.line}`;
-  if (LAST.below) t += "\n⚠️ Сумма ниже минимума — курс примерный, уточнить с клиентом";
+  if (CONFIG.showRates) t += `\nКурс: ${LAST.line}`;
+  if (LAST.below) t += "\n⚠️ Сумма меньше минимальной — итог уточнит оператор";
   if (S.give === "usdt") t += "\nAML-проверка USDT: нужна";
   return t;
 }
 
+// link === null: заявка уже у бота — кнопка закрывает приложение и возвращает в чат с ботом.
+// Иначе (приложение открыто не из бота) — кнопка открывает поддержку с готовым текстом.
 function showDone(title, note, text, link) {
   $("doneTitle").textContent = title; $("doneNote").textContent = note;
-  $("summary").textContent = text; $("mgr").href = link;
+  $("summary").textContent = text;
+  const toBot = link === null;
+  $("mgr").dataset.close = toBot ? "1" : "";
+  $("mgr").href = toBot ? "#" : link;
+  $("mgr").textContent = toBot ? "💬 Вернуться в чат с ботом" : "🆘 Отправить в поддержку";
   $("form").hidden = true; $("done").hidden = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -623,9 +690,9 @@ $("send").onclick = async () => {
       const j = await r.json();
       if (j.ok) {
         showDone(`Заявка №${j.id} принята`, needsKyc()
-                   ? "Вернитесь в чат с ботом: он попросит пройти верификацию (видеокружок с паспортом). Потом оператор напишет вам."
-                   : "Оператор напишет вам в Telegram в ближайшее время. Можно написать ему и самим.",
-                 t, mgrLink(`Здравствуйте! Заявка №${j.id}\n${t}`));
+                   ? "Вернитесь в чат с ботом: он попросит пройти верификацию (видеокружок с паспортом). Оператор напишет вам там же."
+                   : "Оператор напишет вам в чате с ботом. Вопросы по заявке — пишите туда же.",
+                 t, null);
         try { tg.HapticFeedback.notificationOccurred("success"); } catch (e) {}
         return;
       }
@@ -634,8 +701,8 @@ $("send").onclick = async () => {
   }
   // 2) Открыто кнопкой под полем ввода (старый способ)
   if (tg && tg.initData === "") { try { tg.sendData(JSON.stringify(payload)); return; } catch (e) {} }
-  // 3) Запасной путь: открыть чат с оператором с готовым текстом
-  showDone("Заявка готова", "Нажмите кнопку ниже: откроется чат с оператором, текст заявки уже вставлен.",
+  // 3) Запасной путь (приложение открыто не из бота): отправить текст в поддержку
+  showDone("Заявка готова", "Нажмите кнопку ниже: откроется чат поддержки, текст заявки уже вставлен.",
            t, mgrLink("Здравствуйте! Заявка VOLGA EXCHANGE\n" + t));
 };
 $("copy").onclick = async () => {
